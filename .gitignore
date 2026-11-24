@@ -1,0 +1,47 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Environment & secrets
+.env
+.env.*
+!.env.example
+.streamlit/secrets.toml
+
+# Local SQLite databases & logs
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+*.log
+
+# Temporary audio / media files (TTS / recordings)
+*.wav
+*.mp3
+*.ogg
+*.m4a
+
+# Testing & coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Editors & OS metadata
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

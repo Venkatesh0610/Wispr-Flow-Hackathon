@@ -1,0 +1,13 @@
+streamlit>=1.38.0
+langgraph>=0.2.20
+langchain>=0.3.0
+langchain-ollama>=0.2.0
+ollama>=0.3.0
+sqlalchemy>=2.0.30
+pydantic>=2.8.0
+python-dotenv>=1.0.1
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+edge-tts>=7.0.0
+pyttsx3>=2.99
+langchain_groq
