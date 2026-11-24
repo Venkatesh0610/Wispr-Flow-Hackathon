@@ -52,14 +52,18 @@ def route_action(state: InterviewState) -> str:
 # --------------------------------------------------
 
 
-def ask_question_node(state: InterviewState) -> dict:
 
-    q_num = state.get("question_num", 1)
-    max_q = state.get("max_questions", 5)
+def ask_question_node(state: InterviewState) -> dict:
 
     role = state.get("role", "Software Engineer")
     level = state.get("level", "Mid-Level")
     language = state.get("language", "English")
+
+    # Always initialize q before using it
+    q = (
+        f"Can you describe a real technical issue you faced "
+        f"while working as a {role} and how you resolved it?"
+    )
 
     prior_qs = [
         t.get("question", "").strip()
@@ -68,72 +72,62 @@ def ask_question_node(state: InterviewState) -> dict:
     ]
 
     avoid_block = ""
-
     if prior_qs:
-        formatted_prior = "\n".join(
-            [f"- {pq}" for pq in prior_qs]
-        )
-
+        formatted_prior = "\n".join(f"- {pq}" for pq in prior_qs)
         avoid_block = (
             f"\nPreviously asked questions:\n{formatted_prior}\n"
-            "Do not repeat these questions or topics. "
-            "Choose a different practical scenario."
+            "Do not repeat these questions or topics."
         )
-
-    llm = get_llm(temperature=0.5)
 
     prompt = f"""
 You are an experienced technical interviewer.
 
-Generate exactly ONE short, realistic, scenario-based interview question.
+Generate exactly ONE short, realistic, scenario-based question.
 
 Role: {role}
 Level: {level}
 Language: {language}
 
 Rules:
-- Keep the question between 15 and 25 words.
-- Ask only one question at a time.
+- Maximum 25 words.
+- Ask only one question.
 - Use simple, conversational language.
 - Focus on practical, real-world situations.
-- Do not include topic names or labels.
-- Do not write headings such as "Interview Question" or "Topic".
-- Do not include explanations, hints, or expected answers.
-- Output ONLY the question that should be spoken aloud.
-
-Avoid repeating previous questions:
+- Do not include topic names, headings, or labels.
+- Do not include explanations or hints.
+- Output ONLY the question to be spoken aloud.
 {avoid_block}
 """
 
     try:
-        response = llm.invoke([
-            HumanMessage(content=prompt)
-        ])
+        llm = get_llm(temperature=0.4)
+        response = llm.invoke([HumanMessage(content=prompt)])
 
-        question = response.content.strip()
+        q = response.content
+        if not isinstance(q, str):
+            q = str(q)
 
-        # Remove unwanted topic labels if the model generates them
-        question = re.sub(
+        q = re.sub(
             r"^(Interview Question.*?:\s*)",
             "",
-            question,
+            q.strip(),
             flags=re.IGNORECASE
         )
 
-        question = question.strip().strip('"').strip("'")
+        q = q.strip().strip('"').strip("'")
 
-    except Exception:
-        q = (
-            f"Can you describe a real technical issue "
-            f"you faced while working as a {role} "
-            f"and how you resolved it?"
-        )
+        if not q:
+            raise ValueError("LLM returned an empty question")
+
+    except Exception as e:
+        print(f"Question generation error: {e}")
 
     return {
         "current_question": q,
         "feedback": "",
         "score": 0
     }
+
 
 
 # --------------------------------------------------
