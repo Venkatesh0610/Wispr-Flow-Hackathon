@@ -1,0 +1,576 @@
+
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+    margin: 0;
+    padding: 3px;
+    font-family: system-ui, sans-serif;
+    color: #0f172a;
+    background: transparent;
+}
+
+.wrap {
+    border: 2px solid #059669;
+    border-radius: 14px;
+    padding: 12px;
+    background: white;
+    box-shadow: 0 5px 18px rgba(15,23,42,.06);
+}
+
+.wrap.ai {
+    border-color: #4f46e5;
+}
+
+.label {
+    font-size: 14px;
+    font-weight: 750;
+    margin-bottom: 10px;
+}
+
+.visualizer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 55px;
+}
+
+.bar {
+    width: 6px;
+    height: 10px;
+    border-radius: 10px;
+    background: #4f46e5;
+    opacity: .3;
+}
+
+.ai .bar {
+    animation: wave .8s ease-in-out infinite;
+}
+
+.bar:nth-child(2) { animation-delay: .1s; }
+.bar:nth-child(3) { animation-delay: .2s; }
+.bar:nth-child(4) { animation-delay: .3s; }
+.bar:nth-child(5) { animation-delay: .4s; }
+.bar:nth-child(6) { animation-delay: .5s; }
+.bar:nth-child(7) { animation-delay: .6s; }
+
+@keyframes wave {
+    0%, 100% {
+        height: 9px;
+        opacity: .35;
+    }
+    50% {
+        height: 42px;
+        opacity: 1;
+    }
+}
+
+textarea {
+    width: 100%;
+    min-height: 190px;
+    resize: vertical;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 13px;
+    font: 15px/1.55 system-ui, sans-serif;
+    color: #0f172a;
+    background: white;
+    outline: none;
+}
+
+textarea:focus {
+    border: 2px solid #059669;
+    box-shadow: 0 0 0 3px rgba(5,150,105,.12);
+}
+
+.footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.status {
+    font-size: 12px;
+    color: #475569;
+    font-weight: 650;
+}
+
+.dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: #94a3b8;
+}
+
+.active .dot {
+    background: #059669;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    50% { opacity: .35; }
+}
+
+.count, .hint {
+    color: #64748b;
+    font-size: 12px;
+}
+
+.hint {
+    font-size: 11px;
+    margin-top: 7px;
+}
+
+.play-btn {
+    border: none;
+    border-radius: 8px;
+    background: #4f46e5;
+    color: white;
+    padding: 9px 15px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.hidden { display: none !important; }
+</style>
+</head>
+
+<body>
+
+<div id="root" class="wrap">
+
+    <div id="aiView" class="hidden">
+        <div class="label">Alex · Interviewer speaking</div>
+
+        <div class="visualizer">
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+            <span class="bar"></span>
+        </div>
+
+        <div id="aiStatus" class="status">
+            Playing interview question...
+        </div>
+
+        <button id="playBtn" class="play-btn hidden">
+            ▶ Play question
+        </button>
+
+        <audio id="questionAudio"></audio>
+    </div>
+
+    <div id="candidateView" class="hidden">
+
+        <div class="label">
+            Your answer · Wispr Flow dictation
+        </div>
+
+        <textarea
+            id="answer"
+            spellcheck="true"
+            placeholder="Your answer will appear here as Wispr Flow dictates..."
+        ></textarea>
+
+        <div class="footer">
+
+            <div id="status" class="status">
+                <span class="dot"></span>
+                <span id="statusText">
+                    Waiting for your answer
+                </span>
+            </div>
+
+            <div id="count" class="count">
+                0 characters
+            </div>
+
+        </div>
+
+        <div class="hint">
+            Your answer will automatically submit after 5 seconds
+            without new text.
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+(function () {
+
+    const root = document.getElementById("root");
+    const aiView = document.getElementById("aiView");
+    const candidateView = document.getElementById("candidateView");
+
+    const audio = document.getElementById("questionAudio");
+    const aiStatus = document.getElementById("aiStatus");
+    const playBtn = document.getElementById("playBtn");
+
+    const textarea = document.getElementById("answer");
+    const status = document.getElementById("status");
+    const statusText = document.getElementById("statusText");
+    const count = document.getElementById("count");
+
+    let mode = "";
+    let idleSeconds = 5;
+    let timer = null;
+    let countdownTimer = null;
+
+    let submitted = false;
+    let lastValue = "";
+    let audioFinished = false;
+    let currentAudioSource = "";
+
+    function send(type, payload) {
+        window.parent.postMessage({
+            isStreamlitMessage: true,
+            type: type,
+            ...payload
+        }, "*");
+    }
+
+    function sendValue(value) {
+        send("streamlit:setComponentValue", {
+            value: value
+        });
+    }
+
+    function setHeight() {
+        const height = mode === "candidate" ? 280 : 95;
+
+        send("streamlit:setFrameHeight", {
+            height: height
+        });
+    }
+
+    function resetTimers() {
+        clearTimeout(timer);
+        clearInterval(countdownTimer);
+
+        timer = null;
+        countdownTimer = null;
+    }
+
+    function renderStatus(message, active) {
+        statusText.textContent = message;
+        status.classList.toggle("active", !!active);
+    }
+
+    // -------------------------------------------------
+    // AUTOMATIC TEXTBOX FOCUS
+    // -------------------------------------------------
+
+    function focusTextarea() {
+
+        if (mode !== "candidate" || !textarea) {
+            return;
+        }
+
+        try {
+            window.focus();
+
+            textarea.focus({
+                preventScroll: true
+            });
+
+            const length = textarea.value.length;
+
+            textarea.setSelectionRange(length, length);
+
+        } catch (error) {
+            console.log("Focus error:", error);
+        }
+    }
+
+    function activateCandidate() {
+
+        resetTimers();
+
+        mode = "candidate";
+
+        root.classList.remove("ai");
+
+        aiView.classList.add("hidden");
+        candidateView.classList.remove("hidden");
+
+        textarea.value = "";
+        lastValue = "";
+        submitted = false;
+
+        count.textContent = "0 characters";
+
+        renderStatus("Your turn - start speaking", false);
+
+        setHeight();
+
+        // Multiple focus attempts help after iframe rendering.
+        requestAnimationFrame(focusTextarea);
+
+        setTimeout(focusTextarea, 100);
+        setTimeout(focusTextarea, 300);
+        setTimeout(focusTextarea, 700);
+    }
+
+    // -------------------------------------------------
+    // INTERVIEWER AUDIO
+    // -------------------------------------------------
+
+    async function playQuestion() {
+
+        try {
+
+            playBtn.classList.add("hidden");
+
+            await audio.play();
+
+            aiStatus.textContent =
+                "Interviewer is speaking...";
+
+        } catch (error) {
+
+            console.log("Audio autoplay blocked:", error);
+
+            playBtn.classList.remove("hidden");
+
+            aiStatus.textContent =
+                "Click play to hear the interview question.";
+
+        }
+    }
+
+    audio.addEventListener("ended", function () {
+
+        if (audioFinished) return;
+
+        audioFinished = true;
+
+        aiStatus.textContent =
+            "Question completed. Your turn!";
+
+        sendValue({
+            event: "audio_finished",
+            token: Date.now().toString(36)
+        });
+
+    });
+
+    audio.addEventListener("error", function () {
+
+        aiStatus.textContent =
+            "Audio could not be played. Please use the question text.";
+
+        if (!audioFinished) {
+            audioFinished = true;
+
+            sendValue({
+                event: "audio_finished",
+                token: Date.now().toString(36)
+            });
+        }
+
+    });
+
+    playBtn.addEventListener("click", playQuestion);
+
+    // -------------------------------------------------
+    // FIVE SECOND IDLE SUBMISSION
+    // -------------------------------------------------
+
+    function startIdleTimer() {
+
+        resetTimers();
+
+        if (!textarea.value.trim() || submitted) {
+
+            renderStatus(
+                "Waiting for your answer",
+                false
+            );
+
+            return;
+        }
+
+        let remaining = idleSeconds;
+
+        renderStatus(
+            "Answer captured - submitting in " + remaining + "s",
+            true
+        );
+
+        countdownTimer = setInterval(function () {
+
+            remaining--;
+
+            if (remaining > 0) {
+
+                renderStatus(
+                    "Answer captured - submitting in " + remaining + "s",
+                    true
+                );
+
+            }
+
+        }, 1000);
+
+        timer = setTimeout(function () {
+
+            resetTimers();
+
+            const answer = textarea.value.trim();
+
+            if (!answer || submitted) return;
+
+            submitted = true;
+
+            renderStatus(
+                "Submitting your answer...",
+                true
+            );
+
+            const token =
+                Date.now().toString(36) + "-" +
+                Math.random().toString(36).slice(2);
+
+            sendValue({
+                event: "answer_submitted",
+                text: answer,
+                submitted: true,
+                token: token
+            });
+
+        }, idleSeconds * 1000);
+    }
+
+    function handleInput() {
+
+        if (mode !== "candidate") return;
+
+        const current = textarea.value;
+
+        count.textContent =
+            current.length + " characters";
+
+        if (current !== lastValue) {
+
+            lastValue = current;
+            submitted = false;
+
+            startIdleTimer();
+        }
+    }
+
+    textarea.addEventListener("input", handleInput);
+
+    textarea.addEventListener("change", handleInput);
+
+    textarea.addEventListener("paste", function () {
+        setTimeout(handleInput, 50);
+    });
+
+    textarea.addEventListener("compositionend", handleInput);
+
+    // -------------------------------------------------
+    // STREAMLIT COMPONENT RENDER
+    // -------------------------------------------------
+
+    window.addEventListener("message", function (event) {
+
+        const data = event.data;
+
+        if (!data || data.type !== "streamlit:render") {
+            return;
+        }
+
+        const args = data.args || {};
+
+        idleSeconds = Number(args.idle_seconds || 5);
+
+        if (args.mode === "interviewer") {
+
+            const source = args.audio_base64 || "";
+            const mime = args.audio_mime || "audio/wav";
+
+            if (mode !== "interviewer") {
+
+                resetTimers();
+
+                mode = "interviewer";
+                audioFinished = false;
+
+                candidateView.classList.add("hidden");
+                aiView.classList.remove("hidden");
+
+                root.classList.add("ai");
+
+                setHeight();
+            }
+
+            const sourceKey = mime + ":" + source;
+
+            if (source && sourceKey !== currentAudioSource) {
+
+                currentAudioSource = sourceKey;
+                audioFinished = false;
+
+                audio.pause();
+                audio.currentTime = 0;
+
+                audio.src =
+                    "data:" + mime + ";base64," + source;
+
+                playQuestion();
+            }
+
+        } else if (args.mode === "candidate") {
+
+            if (mode !== "candidate") {
+                activateCandidate();
+            } else {
+                focusTextarea();
+            }
+
+            if (args.placeholder) {
+                textarea.placeholder = args.placeholder;
+            }
+
+        }
+
+    });
+
+    window.addEventListener("resize", setHeight);
+
+    document.addEventListener("visibilitychange", function () {
+
+        if (!document.hidden && mode === "candidate") {
+            focusTextarea();
+            setTimeout(focusTextarea, 200);
+        }
+
+    });
+
+    // Tell Streamlit that the custom component is ready.
+    send("streamlit:componentReady", {
+        apiVersion: 1
+    });
+
+})();
+</script>
+
+</body>
+</html>
