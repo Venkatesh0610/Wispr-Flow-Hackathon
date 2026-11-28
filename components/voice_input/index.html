@@ -1,4 +1,3 @@
-
 <!doctype html>
 <html>
 <head>
@@ -6,12 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <style>
-* { box-sizing: border-box; }
+*, *::before, *::after {
+    box-sizing: border-box;
+}
 
 body {
     margin: 0;
     padding: 3px;
-    font-family: system-ui, sans-serif;
+    font-family: system-ui, -apple-system, sans-serif;
     color: #0f172a;
     background: transparent;
 }
@@ -20,8 +21,8 @@ body {
     border: 2px solid #059669;
     border-radius: 14px;
     padding: 12px;
-    background: white;
-    box-shadow: 0 5px 18px rgba(15,23,42,.06);
+    background: #ffffff;
+    box-shadow: 0 5px 18px rgba(15, 23, 42, 0.06);
 }
 
 .wrap.ai {
@@ -47,24 +48,24 @@ body {
     height: 10px;
     border-radius: 10px;
     background: #4f46e5;
-    opacity: .3;
+    opacity: 0.3;
 }
 
 .ai .bar {
-    animation: wave .8s ease-in-out infinite;
+    animation: wave 0.8s ease-in-out infinite;
 }
 
-.bar:nth-child(2) { animation-delay: .1s; }
-.bar:nth-child(3) { animation-delay: .2s; }
-.bar:nth-child(4) { animation-delay: .3s; }
-.bar:nth-child(5) { animation-delay: .4s; }
-.bar:nth-child(6) { animation-delay: .5s; }
-.bar:nth-child(7) { animation-delay: .6s; }
+.bar:nth-child(2) { animation-delay: 0.1s; }
+.bar:nth-child(3) { animation-delay: 0.2s; }
+.bar:nth-child(4) { animation-delay: 0.3s; }
+.bar:nth-child(5) { animation-delay: 0.4s; }
+.bar:nth-child(6) { animation-delay: 0.5s; }
+.bar:nth-child(7) { animation-delay: 0.6s; }
 
 @keyframes wave {
     0%, 100% {
         height: 9px;
-        opacity: .35;
+        opacity: 0.35;
     }
     50% {
         height: 42px;
@@ -73,21 +74,22 @@ body {
 }
 
 textarea {
+    display: block;
     width: 100%;
-    min-height: 190px;
+    min-height: 165px;
     resize: vertical;
-    border: 1px solid #cbd5e1;
+    border: 1.5px solid #cbd5e1;
     border-radius: 10px;
-    padding: 13px;
-    font: 15px/1.55 system-ui, sans-serif;
+    padding: 12px;
+    font: 15px/1.55 system-ui, -apple-system, sans-serif;
     color: #0f172a;
-    background: white;
+    background: #ffffff;
     outline: none;
 }
 
 textarea:focus {
-    border: 2px solid #059669;
-    box-shadow: 0 0 0 3px rgba(5,150,105,.12);
+    border-color: #059669;
+    box-shadow: 0 0 0 3px rgba(5, 150, 105, 0.14);
 }
 
 .footer {
@@ -97,6 +99,12 @@ textarea:focus {
     gap: 10px;
     margin-top: 10px;
     flex-wrap: wrap;
+}
+
+.footer-right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .status {
@@ -120,7 +128,9 @@ textarea:focus {
 }
 
 @keyframes pulse {
-    50% { opacity: .35; }
+    50% {
+        opacity: 0.35;
+    }
 }
 
 .count, .hint {
@@ -133,17 +143,33 @@ textarea:focus {
     margin-top: 7px;
 }
 
-.play-btn {
+.play-btn, .submit-btn {
     border: none;
     border-radius: 8px;
-    background: #4f46e5;
-    color: white;
-    padding: 9px 15px;
+    color: #ffffff;
     font-weight: 700;
     cursor: pointer;
 }
 
-.hidden { display: none !important; }
+.play-btn {
+    background: #4f46e5;
+    padding: 9px 15px;
+}
+
+.submit-btn {
+    background: #059669;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.submit-btn:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+}
+
+.hidden {
+    display: none !important;
+}
 </style>
 </head>
 
@@ -151,6 +177,7 @@ textarea:focus {
 
 <div id="root" class="wrap">
 
+    <!-- INTERVIEWER VIEW -->
     <div id="aiView" class="hidden">
         <div class="label">Alex · Interviewer speaking</div>
 
@@ -164,56 +191,46 @@ textarea:focus {
             <span class="bar"></span>
         </div>
 
-        <div id="aiStatus" class="status">
-            Playing interview question...
-        </div>
+        <div id="aiStatus" class="status">Playing interview question...</div>
 
-        <button id="playBtn" class="play-btn hidden">
-            ▶ Play question
-        </button>
+        <button id="playBtn" class="play-btn hidden">▶ Play question</button>
 
         <audio id="questionAudio"></audio>
     </div>
 
+    <!-- CANDIDATE VIEW -->
     <div id="candidateView" class="hidden">
-
-        <div class="label">
-            Your answer · Wispr Flow dictation
-        </div>
+        <div class="label">Your answer · Wispr Flow dictation</div>
 
         <textarea
             id="answer"
+            autofocus
+            tabindex="0"
             spellcheck="true"
             placeholder="Your answer will appear here as Wispr Flow dictates..."
         ></textarea>
 
         <div class="footer">
-
             <div id="status" class="status">
                 <span class="dot"></span>
-                <span id="statusText">
-                    Waiting for your answer
-                </span>
+                <span id="statusText">Waiting for your answer</span>
             </div>
 
-            <div id="count" class="count">
-                0 characters
+            <div class="footer-right">
+                <span id="count" class="count">0 characters</span>
+                <button id="submitBtn" type="button" class="submit-btn" disabled>Submit now</button>
             </div>
-
         </div>
 
         <div class="hint">
-            Your answer will automatically submit after 5 seconds
-            without new text.
+            Auto-submits after 5 seconds without new text, or click <b>Submit now</b>.
         </div>
-
     </div>
 
 </div>
 
 <script>
 (function () {
-
     const root = document.getElementById("root");
     const aiView = document.getElementById("aiView");
     const candidateView = document.getElementById("candidateView");
@@ -223,19 +240,26 @@ textarea:focus {
     const playBtn = document.getElementById("playBtn");
 
     const textarea = document.getElementById("answer");
+    const submitBtn = document.getElementById("submitBtn");
+
     const status = document.getElementById("status");
     const statusText = document.getElementById("statusText");
     const count = document.getElementById("count");
 
     let mode = "";
     let idleSeconds = 5;
+
     let timer = null;
     let countdownTimer = null;
+    let pollTimer = null;
 
     let submitted = false;
     let lastValue = "";
+
     let audioFinished = false;
     let currentAudioSource = "";
+
+    let focusRetryTimers = [];
 
     function send(type, payload) {
         window.parent.postMessage({
@@ -246,25 +270,31 @@ textarea:focus {
     }
 
     function sendValue(value) {
-        send("streamlit:setComponentValue", {
-            value: value
-        });
+        send("streamlit:setComponentValue", { value: value });
     }
 
     function setHeight() {
-        const height = mode === "candidate" ? 280 : 95;
-
-        send("streamlit:setFrameHeight", {
-            height: height
-        });
+        const height = mode === "candidate" ? 275 : 105;
+        send("streamlit:setFrameHeight", { height: height });
     }
 
     function resetTimers() {
         clearTimeout(timer);
         clearInterval(countdownTimer);
-
         timer = null;
         countdownTimer = null;
+    }
+
+    function stopPolling() {
+        clearInterval(pollTimer);
+        pollTimer = null;
+    }
+
+    function cancelFocusRetries() {
+        focusRetryTimers.forEach(function (timerId) {
+            clearTimeout(timerId);
+        });
+        focusRetryTimers = [];
     }
 
     function renderStatus(message, active) {
@@ -272,303 +302,296 @@ textarea:focus {
         status.classList.toggle("active", !!active);
     }
 
-    // -------------------------------------------------
-    // AUTOMATIC TEXTBOX FOCUS
-    // -------------------------------------------------
-
-    function focusTextarea() {
-
-        if (mode !== "candidate" || !textarea) {
+    function submitCurrentAnswer() {
+        if (submitted || mode !== "candidate") {
             return;
+        }
+        const answer = textarea.value.trim();
+        if (!answer) {
+            return;
+        }
+
+        submitted = true;
+        submitBtn.disabled = true;
+        resetTimers();
+        stopPolling();
+        cancelFocusRetries();
+
+        renderStatus("Submitting your answer...", true);
+
+        const token =
+            Date.now().toString(36) + "-" +
+            Math.random().toString(36).slice(2);
+
+        sendValue({
+            event: "answer_submitted",
+            text: answer,
+            submitted: true,
+            token: token
+        });
+    }
+
+    function startIdleTimer() {
+        resetTimers();
+
+        const trimmed = textarea.value.trim();
+        submitBtn.disabled = !trimmed || submitted;
+
+        if (!trimmed || submitted) {
+            renderStatus(
+                document.activeElement === textarea
+                    ? "Answer box active — start speaking"
+                    : "Activating answer box...",
+                document.activeElement === textarea
+            );
+            return;
+        }
+
+        let remaining = idleSeconds;
+        renderStatus("Dictation detected — submitting in " + remaining + "s", true);
+
+        countdownTimer = setInterval(function () {
+            remaining--;
+            if (remaining > 0 && !submitted) {
+                renderStatus("Dictation detected — submitting in " + remaining + "s", true);
+            }
+        }, 1000);
+
+        timer = setTimeout(function () {
+            submitCurrentAnswer();
+        }, idleSeconds * 1000);
+    }
+
+    function handleInput() {
+        if (mode !== "candidate" || submitted) {
+            return;
+        }
+
+        const current = textarea.value;
+        count.textContent = current.length + " characters";
+        submitBtn.disabled = !current.trim();
+
+        if (current !== lastValue) {
+            lastValue = current;
+            startIdleTimer();
+        }
+    }
+
+    function startValueWatcher() {
+        stopPolling();
+        pollTimer = setInterval(function () {
+            if (mode === "candidate" && !submitted && textarea.value !== lastValue) {
+                handleInput();
+            }
+        }, 250);
+    }
+
+    // Automatically simulates a click + focus sequence on the answer textarea
+    function autoClickTextarea() {
+        if (mode !== "candidate" || submitted || !textarea || !textarea.isConnected) {
+            return false;
         }
 
         try {
             window.focus();
 
-            textarea.focus({
-                preventScroll: true
-            });
+            const rect = textarea.getBoundingClientRect();
+            const clientX = rect.left + Math.min(40, Math.max(8, rect.width / 2));
+            const clientY = rect.top + Math.min(24, Math.max(8, rect.height / 2));
 
-            const length = textarea.value.length;
+            const eventInit = {
+                bubbles: true,
+                cancelable: true,
+                composed: true,
+                view: window,
+                clientX: clientX,
+                clientY: clientY,
+                button: 0,
+                buttons: 1
+            };
 
-            textarea.setSelectionRange(length, length);
+            if (typeof PointerEvent === "function") {
+                textarea.dispatchEvent(new PointerEvent("pointerdown", eventInit));
+            }
+            textarea.dispatchEvent(new MouseEvent("mousedown", eventInit));
 
-        } catch (error) {
-            console.log("Focus error:", error);
+            textarea.focus({ preventScroll: true });
+
+            if (typeof PointerEvent === "function") {
+                textarea.dispatchEvent(new PointerEvent("pointerup", eventInit));
+            }
+            textarea.dispatchEvent(new MouseEvent("mouseup", eventInit));
+            textarea.dispatchEvent(new MouseEvent("click", eventInit));
+
+            if (typeof textarea.click === "function") {
+                textarea.click();
+            }
+
+            const len = textarea.value.length;
+            textarea.setSelectionRange(len, len);
+
+            const isFocused = document.activeElement === textarea;
+            if (!textarea.value.trim()) {
+                renderStatus(
+                    isFocused
+                        ? "Answer box clicked & active — speak now"
+                        : "Attempting to focus answer box...",
+                    isFocused
+                );
+            }
+            return isFocused;
+        } catch (err) {
+            return false;
         }
+    }
+
+    function scheduleCandidateAutoClick() {
+        cancelFocusRetries();
+
+        requestAnimationFrame(function () {
+            autoClickTextarea();
+            requestAnimationFrame(autoClickTextarea);
+        });
+
+        [80, 200, 450, 800].forEach(function (delay) {
+            const id = setTimeout(function () {
+                if (mode === "candidate" && !submitted) {
+                    autoClickTextarea();
+                }
+            }, delay);
+            focusRetryTimers.push(id);
+        });
     }
 
     function activateCandidate() {
-
         resetTimers();
+        cancelFocusRetries();
 
         mode = "candidate";
-
         root.classList.remove("ai");
-
         aiView.classList.add("hidden");
         candidateView.classList.remove("hidden");
 
+        textarea.disabled = false;
+        textarea.readOnly = false;
         textarea.value = "";
         lastValue = "";
         submitted = false;
-
+        submitBtn.disabled = true;
         count.textContent = "0 characters";
 
-        renderStatus("Your turn - start speaking", false);
-
         setHeight();
-
-        // Multiple focus attempts help after iframe rendering.
-        requestAnimationFrame(focusTextarea);
-
-        setTimeout(focusTextarea, 100);
-        setTimeout(focusTextarea, 300);
-        setTimeout(focusTextarea, 700);
+        renderStatus("Activating answer box...", false);
+        startValueWatcher();
+        scheduleCandidateAutoClick();
     }
 
-    // -------------------------------------------------
-    // INTERVIEWER AUDIO
-    // -------------------------------------------------
-
     async function playQuestion() {
-
         try {
-
             playBtn.classList.add("hidden");
-
             await audio.play();
-
-            aiStatus.textContent =
-                "Interviewer is speaking...";
-
+            aiStatus.textContent = "Interviewer is speaking...";
         } catch (error) {
-
-            console.log("Audio autoplay blocked:", error);
-
             playBtn.classList.remove("hidden");
-
-            aiStatus.textContent =
-                "Click play to hear the interview question.";
-
+            aiStatus.textContent = "Click play to hear the interview question.";
         }
     }
 
-    audio.addEventListener("ended", function () {
-
-        if (audioFinished) return;
-
+    function notifyAudioFinished() {
+        if (audioFinished) {
+            return;
+        }
         audioFinished = true;
-
-        aiStatus.textContent =
-            "Question completed. Your turn!";
-
+        aiStatus.textContent = "Question completed. Your turn!";
         sendValue({
             event: "audio_finished",
             token: Date.now().toString(36)
         });
+    }
 
-    });
-
+    audio.addEventListener("ended", notifyAudioFinished);
     audio.addEventListener("error", function () {
-
-        aiStatus.textContent =
-            "Audio could not be played. Please use the question text.";
-
-        if (!audioFinished) {
-            audioFinished = true;
-
-            sendValue({
-                event: "audio_finished",
-                token: Date.now().toString(36)
-            });
-        }
-
+        aiStatus.textContent = "Audio could not be played. Your turn!";
+        notifyAudioFinished();
     });
 
     playBtn.addEventListener("click", playQuestion);
-
-    // -------------------------------------------------
-    // FIVE SECOND IDLE SUBMISSION
-    // -------------------------------------------------
-
-    function startIdleTimer() {
-
-        resetTimers();
-
-        if (!textarea.value.trim() || submitted) {
-
-            renderStatus(
-                "Waiting for your answer",
-                false
-            );
-
-            return;
-        }
-
-        let remaining = idleSeconds;
-
-        renderStatus(
-            "Answer captured - submitting in " + remaining + "s",
-            true
-        );
-
-        countdownTimer = setInterval(function () {
-
-            remaining--;
-
-            if (remaining > 0) {
-
-                renderStatus(
-                    "Answer captured - submitting in " + remaining + "s",
-                    true
-                );
-
-            }
-
-        }, 1000);
-
-        timer = setTimeout(function () {
-
-            resetTimers();
-
-            const answer = textarea.value.trim();
-
-            if (!answer || submitted) return;
-
-            submitted = true;
-
-            renderStatus(
-                "Submitting your answer...",
-                true
-            );
-
-            const token =
-                Date.now().toString(36) + "-" +
-                Math.random().toString(36).slice(2);
-
-            sendValue({
-                event: "answer_submitted",
-                text: answer,
-                submitted: true,
-                token: token
-            });
-
-        }, idleSeconds * 1000);
-    }
-
-    function handleInput() {
-
-        if (mode !== "candidate") return;
-
-        const current = textarea.value;
-
-        count.textContent =
-            current.length + " characters";
-
-        if (current !== lastValue) {
-
-            lastValue = current;
-            submitted = false;
-
-            startIdleTimer();
-        }
-    }
+    submitBtn.addEventListener("click", submitCurrentAnswer);
 
     textarea.addEventListener("input", handleInput);
-
     textarea.addEventListener("change", handleInput);
-
+    textarea.addEventListener("compositionend", handleInput);
+    textarea.addEventListener("beforeinput", function () {
+        setTimeout(handleInput, 20);
+    });
     textarea.addEventListener("paste", function () {
         setTimeout(handleInput, 50);
     });
+    textarea.addEventListener("keyup", handleInput);
 
-    textarea.addEventListener("compositionend", handleInput);
-
-    // -------------------------------------------------
-    // STREAMLIT COMPONENT RENDER
-    // -------------------------------------------------
+    textarea.addEventListener("focus", function () {
+        if (!textarea.value.trim() && !submitted) {
+            renderStatus("Answer box clicked & active — speak now", true);
+        }
+    });
 
     window.addEventListener("message", function (event) {
-
         const data = event.data;
-
         if (!data || data.type !== "streamlit:render") {
             return;
         }
 
         const args = data.args || {};
-
         idleSeconds = Number(args.idle_seconds || 5);
 
         if (args.mode === "interviewer") {
+            cancelFocusRetries();
+            stopPolling();
 
             const source = args.audio_base64 || "";
             const mime = args.audio_mime || "audio/wav";
 
             if (mode !== "interviewer") {
-
                 resetTimers();
-
                 mode = "interviewer";
                 audioFinished = false;
-
                 candidateView.classList.add("hidden");
                 aiView.classList.remove("hidden");
-
                 root.classList.add("ai");
-
                 setHeight();
             }
 
             const sourceKey = mime + ":" + source;
-
             if (source && sourceKey !== currentAudioSource) {
-
                 currentAudioSource = sourceKey;
                 audioFinished = false;
-
                 audio.pause();
                 audio.currentTime = 0;
-
-                audio.src =
-                    "data:" + mime + ";base64," + source;
-
+                audio.src = "data:" + mime + ";base64," + source;
                 playQuestion();
             }
-
         } else if (args.mode === "candidate") {
-
             if (mode !== "candidate") {
                 activateCandidate();
             } else {
-                focusTextarea();
+                scheduleCandidateAutoClick();
             }
 
             if (args.placeholder) {
                 textarea.placeholder = args.placeholder;
             }
-
         }
-
     });
 
     window.addEventListener("resize", setHeight);
 
     document.addEventListener("visibilitychange", function () {
-
-        if (!document.hidden && mode === "candidate") {
-            focusTextarea();
-            setTimeout(focusTextarea, 200);
+        if (!document.hidden && mode === "candidate" && !submitted) {
+            scheduleCandidateAutoClick();
         }
-
     });
 
-    // Tell Streamlit that the custom component is ready.
-    send("streamlit:componentReady", {
-        apiVersion: 1
-    });
-
+    send("streamlit:componentReady", { apiVersion: 1 });
 })();
 </script>
 
